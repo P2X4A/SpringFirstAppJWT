@@ -6,6 +6,8 @@ import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -161,7 +163,7 @@ public class AESUtil {
   public static String hashingToSHA384(String content) {
     return DigestUtils.sha384Hex(content);
   }
-
+  
   /**
    * Genera un hash SHA-512 del contenido proporcionado.
    *
@@ -172,23 +174,44 @@ public class AESUtil {
     return DigestUtils.sha512Hex(content);
   }
 
-  //	public static void main(String[] args) {
-  //		String texto = "zambrano lo robaron hace meses";
-  //		System.out.println(texto);
-  //
-  //		String codificado = encrypt(texto);
-  //		System.out.println(codificado);
-  //
-  //		String decodificado = decrypt(codificado);
-  //		System.out.println(decodificado);
-  //
-  //		String
-  // contrasena="soyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseñasoyunacontraseña";
-  //		System.out.println(hashingToMD5(contrasena));
-  //		System.out.println(hashingToSHA1(contrasena));
-  //		System.out.println(hashingToSHA256(contrasena));
-  //		System.out.println(hashingToSHA384(contrasena));
-  //		System.out.println(hashingToSHA512(contrasena));
-  //	}
+  private static String ajustarA16Letras(String materia) {
+	    String sinTildes = Normalizer.normalize(materia, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+	    String soloLetras = sinTildes.replaceAll("[^A-Za-z]", "");
+	    if (soloLetras.length() >= 16) {
+	      return soloLetras.substring(0, 16);
+	    }
+	    StringBuilder sb = new StringBuilder(soloLetras);
+	    while (sb.length() < 16) {
+	      sb.append("X");
+	    }
+	    return sb.toString();
+	  }
 
+//	  public static void main(String[] args) {
+//	    String materia = "economiayfinanzas"; 
+//	    String llave = ajustarA16Letras(materia);
+//
+//	    String iv = "ProyectoUEB1"; // 12 letras, fijo para esta demo
+//
+//	    String nombreEstudiante = "sofiasierra"; // el String a enviar
+//
+//	    System.out.println("Llave (16): " + llave + "  (" + llave.getBytes().length + " bytes)");
+//
+//	    String cifrado = encrypt(llave, iv, nombreEstudiante); // "parsear"
+//	    System.out.println("Cifrado   : " + cifrado);
+//
+//	    String descifrado = decrypt(llave, iv, cifrado); // "desparsear"
+//	    System.out.println("Descifrado: " + descifrado);
+//	    
+//	    
+//	  }
+//	  
+	  public static void main(String[] args) {
+		    String llave = "BasesdedatosXXXX";                         // la MISMA llave que se usó para cifrar
+		    String iv = "ProyectoUEB1";                                 // el MISMO IV que se usó para cifrar
+		    String textoCifrado = "cmI/rzqUJ1Nr1ALOJHWtaCW8IpcW+eez2zE14Q=="; // lo que te dieron o generaste antes
+
+		    String resultado = decrypt(llave, iv, textoCifrado);
+		    System.out.println("Descifrado: " + resultado);
+		  }
 }
