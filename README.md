@@ -1,234 +1,181 @@
-<div align="center">
+# SpringFirstAppJWT
 
-# 🔐 SpringFirstApp JWT
+API REST de usuarios con autenticación **JWT** y permisos por **rol**, hecha con Spring Boot 3 y Java 21.
 
-**API REST con Spring Boot, autenticación JWT y control de acceso por roles**
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![MySQL](https://img.shields.io/badge/MySQL-database-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)](https://springdoc.org/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
-![Swagger](https://img.shields.io/badge/OpenAPI-Swagger_UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge&logo=gnu&logoColor=white)](LICENSE)
+## Contenido
 
-</div>
+1. [Qué hace](#qué-hace)
+2. [Cómo funciona](#cómo-funciona)
+3. [Inicio rápido](#inicio-rápido)
+4. [Configuración](#configuración)
+5. [Usar la API](#usar-la-api)
+6. [Roles](#roles)
+7. [Estructura del código](#estructura-del-código)
+8. [Pruebas](#pruebas)
+9. [Licencia](#licencia)
 
----
+## Qué hace
 
-## 📖 Descripción
+- Registra usuarios y emite un **token JWT** (HS256, 24 horas de vigencia) al iniciar sesión.
+- Protege `/user/**` con ese token: algunos endpoints son de lectura para cualquier usuario autenticado y el resto son solo para administradores.
+- Guarda las contraseñas con **BCrypt** y mantiene la API sin sesión (*stateless*).
+- Publica la documentación en **Swagger UI**, con botón *Authorize* para probar con el token.
 
-Aplicación **Spring Boot** que demuestra autenticación y autorización con **JWT (JSON Web Token)**. Expone una API REST segura para registrar usuarios, iniciar sesión y gestionar usuarios según su rol (`USER` o `ADMIN`).
+## Cómo funciona
 
-## ✨ Características
-
-- 🔑 Inicio de sesión con **JWT** (HS256, validez de 24 horas)
-- 🛡️ Autorización por **roles** (`USER` y `ADMIN`) con Spring Security
-- 👥 **CRUD de usuarios** con variantes por parámetros y por JSON
-- 🔒 Contraseñas cifradas con **BCrypt**
-- 🌐 **CORS** configurado para clientes web
-- 📚 Documentación interactiva con **Swagger UI** (OpenAPI)
-- ⚠️ Manejo de excepciones propio (`PasswordNotValidException`)
-- 🧪 Pruebas unitarias con JUnit y Spring Security Test
-- 📝 Javadoc en español
-
-## 🧰 Tecnologías
-
-| Capa | Tecnología |
-| --- | --- |
-| Lenguaje | Java 21 |
-| Framework | Spring Boot 3.4.5 (Web, Validation, Data JPA, Security) |
-| Autenticación | JJWT 0.11.5 |
-| Base de datos | MySQL (Hibernate / JPA) |
-| Documentación | springdoc-openapi 2.3.0 (Swagger UI) |
-| Utilidades | ModelMapper, Gson, Commons Codec |
-| Build | Maven (incluye Maven Wrapper) |
-
-## 🏗️ Arquitectura
-
-```text
-src/main/java/co/edu/unbosque/springfirstapp
-├── configuration/   # Datos iniciales y configuración de OpenAPI
-├── controller/      # AuthController, UserController
-├── dto/             # UserDTO
-├── exception/       # PasswordNotValidException
-├── model/           # Entidad User y enum Role
-├── repository/      # UserRepository (Spring Data JPA)
-├── security/        # SecurityConfig, JwtUtil, JwtAuthenticationFilter
-├── service/         # UserService y lógica de negocio
-└── util/            # AESUtil
-```
-
-### Flujo de autenticación
+Cada petición pasa primero por `JwtAuthenticationFilter`, que lee la cabecera `Authorization: Bearer <token>`, valida el token y carga al usuario desde la base de datos. Después, `SecurityConfig` decide por ruta y rol si la petición continúa.
 
 ```mermaid
-sequenceDiagram
-    participant C as Cliente
-    participant A as /auth/login
-    participant F as JwtAuthenticationFilter
-    participant U as /user/**
-
-    C->>A: POST username + password
-    A-->>C: 200 { token, role }
-    C->>F: GET /user/getall<br/>Authorization: Bearer token
-    F->>F: Valida firma, expiración y rol
-    F->>U: Petición autenticada
-    U-->>C: 200 respuesta (o 403 si el rol no alcanza)
+flowchart LR
+    Client([Cliente]) -->|"HTTP + Bearer JWT"| Filter[JwtAuthenticationFilter]
+    Filter -->|"valida el token"| Jwt[JwtUtil]
+    Filter --> Rules{"SecurityConfig<br/>reglas por ruta y rol"}
+    Rules -->|"/auth/** (público)"| Auth[AuthController]
+    Rules -->|"/user/** (USER / ADMIN)"| Users[UserController]
+    Auth --> Service[UserService]
+    Users --> Service
+    Service --> Repo[UserRepository]
+    Repo --> DB[("MySQL")]
 ```
 
-## 🚀 Puesta en marcha
+## Inicio rápido
 
-### Requisitos previos
+Necesitas **JDK 21+**, **Git** y un servidor **MySQL** con una base de datos vacía (Hibernate crea las tablas).
 
-- ☕ **Java 21** o superior
-- 🐬 Un servidor **MySQL** accesible
-- 📦 Maven (opcional: el proyecto incluye `mvnw`)
-
-### 1. Clonar el repositorio
+<details>
+<summary>¿No tienes MySQL? Levántalo con Docker</summary>
 
 ```bash
+docker run --name springfirstapp-mysql \
+  -e MYSQL_ROOT_PASSWORD=cambia_esta_clave \
+  -e MYSQL_DATABASE=springfirstapp \
+  -p 3306:3306 -d mysql:8
+```
+
+Con eso, la URL de conexión es `jdbc:mysql://localhost:3306/springfirstapp` y el usuario es `root`.
+
+</details>
+
+```bash
+# 1. Clonar
 git clone https://github.com/P2X4A/SpringFirstAppJWT.git
 cd SpringFirstAppJWT
+
+# 2. Crear la configuración local (queda fuera de Git)
+cp src/main/resources/application.properties.example src/main/resources/application.properties
+#    En Windows (CMD): copy src\main\resources\application.properties.example src\main\resources\application.properties
+
+# 3. Editar application.properties (base de datos y jwt.secret) y arrancar
+./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
 ```
 
-### 2. Crear `application.properties`
+Cuando arranque, abre **<http://localhost:8080/swagger-ui/index.html>**. La especificación OpenAPI está en `/v3/api-docs`.
 
-> [!IMPORTANT]
-> El archivo `src/main/resources/application.properties` **no está en el repositorio** (está en `.gitignore` porque contiene credenciales). Debes crearlo tú.
+## Configuración
 
-Crea `src/main/resources/application.properties` con este contenido y ajusta los valores:
+`application.properties` está en `.gitignore` porque lleva credenciales. La plantilla `application.properties.example` trae todas las claves:
 
-```properties
-# Base de datos
-spring.datasource.url=jdbc:mysql://localhost:3306/springfirstapp?createDatabaseIfNotExist=true
-spring.datasource.username=TU_USUARIO
-spring.datasource.password=TU_PASSWORD
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.jpa.hibernate.ddl-auto=update
+| Propiedad | Descripción |
+|---|---|
+| `spring.datasource.url` | URL JDBC de MySQL |
+| `spring.datasource.username` / `password` | Credenciales de la base de datos |
+| `spring.jpa.hibernate.ddl-auto` | `update`: crea y ajusta las tablas al arrancar |
+| `server.port` | Puerto HTTP (8080 en la plantilla) |
+| `jwt.secret` | Clave con la que se firman los tokens, **mínimo 32 caracteres** |
 
-# Servidor
-server.port=8081
+> **Importante:** define siempre `jwt.secret`. Si falta, `JwtUtil` usa un valor por defecto que está en este repositorio, y con él cualquiera podría generar tokens válidos.
 
-# JWT: usa un secreto propio de al menos 32 caracteres
-jwt.secret=CAMBIA_ESTE_VALOR_POR_UN_SECRETO_LARGO_Y_ALEATORIO
-```
+## Usar la API
 
-> [!WARNING]
-> Si no defines `jwt.secret`, la aplicación usa un valor por defecto que está escrito en el código fuente público. Defínelo siempre, sobre todo fuera de tu máquina local.
-
-### 3. Ejecutar
+El recorrido típico es registrarse, iniciar sesión y usar el token:
 
 ```bash
-./mvnw spring-boot:run
+# 1. Registrar
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"ana","password":"MiClave123"}'
+
+# 2. Iniciar sesión -> {"token":"eyJhbGciOiJIUzI1NiJ9..."}
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"ana","password":"MiClave123"}'
+
+# 3. Llamar a un endpoint protegido
+curl http://localhost:8080/user/getall -H "Authorization: Bearer <TOKEN>"
 ```
 
-En Windows (PowerShell o CMD):
+### Públicos
 
-```bash
-mvnw.cmd spring-boot:run
+| Método | Ruta | Respuestas |
+|---|---|---|
+| `POST` | `/auth/login` | `200` con el token · `401` credenciales inválidas |
+| `POST` | `/auth/register` | `201` creado · `409` el usuario ya existe · `400` error |
+
+### Con token: `USER` o `ADMIN`
+
+| Método | Ruta | Respuestas |
+|---|---|---|
+| `GET` | `/user/getall` | `202` con la lista · `204` si está vacía |
+| `GET` | `/user/count` | `202` con el total · `204` si es 0 |
+| `GET` | `/user/exists/{id}` | `202` `true` · `204` `false` |
+| `GET` | `/user/getbyid/{id}` | `202` con el usuario · `404` |
+
+### Con token: solo `ADMIN`
+
+| Método | Ruta | Respuestas |
+|---|---|---|
+| `POST` | `/user/createjson` (cuerpo JSON) | `201` · `406` · `400` si el nombre contiene `<` o `>` |
+| `POST` | `/user/create?username=&password=` | `201` · `406` |
+| `PUT` | `/user/updatejson?id=` (cuerpo JSON) | `202` · `226` nombre ya usado · `404` · `400` |
+| `PUT` | `/user/update?id=&newUsername=&newPassword=` | `202` · `226` · `404` · `400` |
+| `DELETE` | `/user/deletebyid/{id}` | `202` · `404` |
+| `DELETE` | `/user/deletebyname?name=` | `202` · `404` |
+
+## Roles
+
+- Los usuarios creados por la API (`/auth/register` y `/user/create*`) reciben el rol `USER`; el cuerpo de la petición no permite elegir otro.
+- Al arrancar, `LoadDatabase` crea el usuario `admin` si no existe (su contraseña inicial está en `LoadDatabase.java`) y, con el código actual, también con rol `USER`.
+- Para habilitar los endpoints de `ADMIN`, promueve un usuario directamente en la base de datos:
+
+```sql
+UPDATE useraccount SET role = 'ADMIN' WHERE username = 'admin';
 ```
 
-Al arrancar, la aplicación crea las tablas (`ddl-auto=update`) y, si no existen, un usuario administrador y uno normal de ejemplo (ver [`LoadDatabase.java`](src/main/java/co/edu/unbosque/springfirstapp/configuration/LoadDatabase.java)). Cambia esas credenciales antes de cualquier uso real.
-
-## 📚 Documentación de la API
-
-Con la aplicación en marcha, abre Swagger UI:
+## Estructura del código
 
 ```text
-http://localhost:8081/swagger-ui/index.html
+src/main/java/co/edu/unbosque/springfirstapp/
+├── SpringFirstAppApplication.java   arranque de Spring Boot
+├── ServletInitializer.java          despliegue como WAR
+├── configuration/                   LoadDatabase (usuario inicial) y OpenApiConfig (Swagger + bearerAuth)
+├── controller/                      AuthController y UserController
+├── dto/                             UserDTO y FactDTO
+├── exception/                       PasswordNotValidException
+├── model/                           User (implementa UserDetails) y enum Role { USER, ADMIN }
+├── repository/                      UserRepository (Spring Data JPA)
+├── security/                        SecurityConfig, JwtAuthenticationFilter, JwtUtil, UserDetailsServiceImpl
+├── service/                         UserService, CRUDOperation y ExternalHTTPRequestHandler
+└── util/                            AESUtil (cifrado AES y funciones hash)
 ```
 
-La especificación OpenAPI en JSON está en `http://localhost:8081/v3/api-docs`.
+Dos clases son utilidades independientes y no forman parte de la API REST: `AESUtil` (AES con Base64 y hashes MD5/SHA) y `ExternalHTTPRequestHandler` (ejemplo de `HttpClient` con Gson, con su propio `main`).
 
-## 🔑 Autenticación
+**Dependencias principales:** Spring Boot Starter (Web, Security, Data JPA, Validation), `jjwt` 0.11.5, `mysql-connector-j`, `springdoc-openapi` 2.3.0, ModelMapper 3.1.1, Gson y Apache Commons Codec. El proyecto se empaqueta como **WAR** y trae Maven Wrapper.
 
-### Registrarse
-
-`POST /auth/register` es público y crea un usuario con rol `USER` (la contraseña debe tener al menos 8 caracteres).
-
-```bash
-curl -X POST http://localhost:8081/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username": "nuevoUsuario", "password": "contraseña123"}'
-```
-
-### Iniciar sesión
-
-```bash
-curl -X POST http://localhost:8081/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "nuevoUsuario", "password": "contraseña123"}'
-```
-
-Respuesta:
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "role": "USER"
-}
-```
-
-### Usar el token
-
-Envíalo en el encabezado `Authorization` en cada petición protegida:
-
-```bash
-curl http://localhost:8081/user/getall \
-  -H "Authorization: Bearer <tu_token>"
-```
-
-## 👥 Endpoints de usuarios
-
-| Método | Ruta | Descripción | Acceso |
-| --- | --- | --- | --- |
-| `POST` | `/auth/register` | Registrar usuario (rol `USER`) | 🌐 Público |
-| `POST` | `/auth/login` | Iniciar sesión y obtener JWT | 🌐 Público |
-| `GET` | `/user/getall` | Listar todos los usuarios | `USER` · `ADMIN` |
-| `GET` | `/user/count` | Contar usuarios | `USER` · `ADMIN` |
-| `GET` | `/user/exists/{id}` | Verificar si existe un usuario | `USER` · `ADMIN` |
-| `GET` | `/user/getbyid/{id}` | Obtener usuario por ID | `USER` · `ADMIN` |
-| `POST` | `/user/create` | Crear usuario (parámetros) | `ADMIN` |
-| `POST` | `/user/createjson` | Crear usuario (cuerpo JSON) | `ADMIN` |
-| `PUT` | `/user/update` | Actualizar usuario (parámetros) | `ADMIN` |
-| `PUT` | `/user/updatejson` | Actualizar usuario (JSON + `id`) | `ADMIN` |
-| `DELETE` | `/user/deletebyid/{id}` | Eliminar usuario por ID | `ADMIN` |
-| `DELETE` | `/user/deletebyname` | Eliminar usuario por nombre (`name`) | `ADMIN` |
-
-Las reglas de acceso están definidas en [`SecurityConfig.java`](src/main/java/co/edu/unbosque/springfirstapp/security/SecurityConfig.java). Con un token sin el rol requerido, la API responde `403`.
-
-## 🧪 Pruebas
+## Pruebas
 
 ```bash
 ./mvnw test
 ```
 
-Cobertura de las pruebas unitarias:
+Hay una sola prueba, `SpringFirstAppApplicationTests`, que levanta el contexto de Spring; por eso necesita `application.properties` configurado y la base de datos disponible.
 
-| Clase | Qué verifica |
-| --- | --- |
-| `SpringFirstAppApplication` | Carga del contexto y creación del bean `ModelMapper` |
-| `ServletInitializer` | Configuración del inicializador de Servlet |
-| `PasswordNotValidException` | Mensaje de error de la excepción |
-| `UserController` | Manejo de solicitudes HTTP de usuarios |
-| `AuthController` | Autenticación de usuarios |
-| `JwtUtil` | Generación y validación de tokens JWT |
+## Licencia
 
-## 📄 Javadoc
-
-La documentación Javadoc está en español. Para generarla:
-
-```bash
-./mvnw javadoc:javadoc
-```
-
-El resultado queda en `target/site/apidocs`.
-
-## 📜 Licencia
-
-Este proyecto se distribuye bajo la licencia **GNU General Public License v3.0 (GPL-3.0)**. Consulta el archivo [`LICENSE`](LICENSE) para ver el texto completo.
-
-## 🤝 Créditos
-
-- 🏫 Universidad El Bosque
-- 👤 [P2X4A](https://github.com/P2X4A)
+Distribuido bajo la **GNU General Public License v3.0**. El texto completo está en [LICENSE](LICENSE).
