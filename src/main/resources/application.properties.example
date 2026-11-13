@@ -1,0 +1,22 @@
+# Plantilla de configuración. Copia este archivo como application.properties
+# (queda fuera de Git por .gitignore) y reemplaza los valores marcados.
+
+# --- Base de datos (MySQL) ---
+spring.datasource.url=jdbc:mysql://localhost:3306/NOMBRE_DE_TU_BASE_DE_DATOS
+spring.datasource.username=TU_USUARIO
+spring.datasource.password=TU_CONTRASENA
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# --- JPA / Hibernate ---
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.open-in-view=false
+# Para ver el SQL en consola durante las pruebas:
+#spring.jpa.show-sql=true
+
+# --- Servidor ---
+server.port=8080
+
+# --- JWT ---
+# Obligatorio: mínimo 32 caracteres. Si falta, la aplicación usa un valor por
+# defecto público y cualquiera podría firmar tokens válidos.
+jwt.secret=CAMBIA_ESTE_SECRETO_POR_UNO_ALEATORIO_DE_AL_MENOS_32_CARACTERES

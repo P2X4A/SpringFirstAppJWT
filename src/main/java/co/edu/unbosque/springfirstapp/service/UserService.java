@@ -1,245 +1,150 @@
 package co.edu.unbosque.springfirstapp.service;
 
-import co.edu.unbosque.springfirstapp.dto.UserDTO;
-import co.edu.unbosque.springfirstapp.model.User;
-import co.edu.unbosque.springfirstapp.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDate;
 import java.util.Optional;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/**
- * Servicio que proporciona operaciones CRUD y funcionalidades adicionales para usuarios. Implementa
- * la interfaz CRUDOperation para operaciones básicas de creación, lectura, actualización y
- * eliminación.
- */
+import co.edu.unbosque.springfirstapp.dto.UserDTO;
+import co.edu.unbosque.springfirstapp.model.User;
+import co.edu.unbosque.springfirstapp.repository.UserRepository;
+
 @Service
 public class UserService implements CRUDOperation<UserDTO> {
 
-  /** Repositorio para acceder a los datos de usuarios en la base de datos. */
-  @Autowired private UserRepository userRepo;
+	@Autowired
+	private UserRepository userRepo;
 
-  /** Mapeador para convertir entre entidades User y DTOs UserDTO. */
-  @Autowired private ModelMapper modelMapper;
+	@Autowired
+	private ModelMapper modelMapper;
 
-  /** Codificador para encriptar contraseñas de usuarios. */
-  @Autowired private PasswordEncoder passwordEncoder;
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
-  /** Constructor por defecto. */
-  public UserService() {}
+	public UserService() {
 
-  /**
-   * Cuenta el número total de usuarios en la base de datos.
-   *
-   * @return Número total de usuarios
-   */
-  @Override
-  public long count() {
-    return userRepo.count();
-  }
+	}
 
-  /**
-   * Verifica si existe un usuario con el ID especificado.
-   *
-   * @param id ID del usuario a verificar
-   * @return true si el usuario existe, false en caso contrario
-   */
-  @Override
-  public boolean exist(Long id) {
-    return userRepo.existsById(id);
-  }
+	@Override
+	public long count() {
+		return userRepo.count();
+	}
 
-  /**
-   * Crea un nuevo usuario en la base de datos. Codifica la contraseña antes de guardarla.
-   *
-   * @param data DTO con los datos del usuario a crear
-   * @return 0 si la creación fue exitosa, 1 si el nombre de usuario ya existe
-   */
-  @Override
-  public int create(UserDTO data) {
-    User entity = modelMapper.map(data, User.class);
-    if (findUsernameAlreadyTaken(entity)) {
-      return 1;
-    } else {
-      // Encriptar la contraseña antes de guardar
-      entity.setPassword(passwordEncoder.encode(entity.getPassword()));
-      //Persistir la edad y fecha nacimiento del usuario
-      entity.setUserAge(entity.getUserAge());
-      entity.setDateOfBirth(entity.getDateOfBirth());
-      // Establecer rol si se proporciona, de lo contrario se usará el rol predeterminado (USER)
-      if (data.getRole() != null) {
-        entity.setRole(data.getRole());
-      }
-      userRepo.save(entity);
-      return 0;
-    }
-  }
+	@Override
+	public boolean exist(Long id) {
+		return userRepo.existsById(id) ? true : false;
+	}
 
-  /**
-   * Obtiene todos los usuarios de la base de datos.
-   *
-   * @return Lista de DTOs de usuarios
-   */
-  @Override
-  public List<UserDTO> getAll() {
-    List<User> entityList = userRepo.findAll();
-    List<UserDTO> dtoList = new ArrayList<>();
-    entityList.forEach(
-        (entity) -> {
-          UserDTO dto = modelMapper.map(entity, UserDTO.class);
-          dtoList.add(dto);
-        });
+	@Override
+	public int create(UserDTO data) {
+		User entity = modelMapper.map(data, User.class);
+		if (findUsernameAlreadyTaken(entity)) {
+			return 1;
+		} else {
+			// Hash the password before saving
+			entity.setPassword(passwordEncoder.encode(entity.getPassword()));
+			userRepo.save(entity);
+			return 0;
+		}
+	}
 
-    return dtoList;
-  }
+	@Override
+	public List<UserDTO> getAll() {
+		List<User> entityList = userRepo.findAll();
+		List<UserDTO> dtoList = new ArrayList<>();
+		entityList.forEach((entity) -> {
 
-  /**
-   * Elimina un usuario por su ID.
-   *
-   * @param id ID del usuario a eliminar
-   * @return 0 si la eliminación fue exitosa, 1 si el usuario no existe
-   */
-  @Override
-  public int deleteById(Long id) {
-    Optional<User> found = userRepo.findById(id);
-    if (found.isPresent()) {
-      userRepo.delete(found.get());
-      return 0;
-    } else {
-      return 1;
-    }
-  }
+			UserDTO dto = modelMapper.map(entity, UserDTO.class);
+			dtoList.add(dto);
+		});
 
-  /**
-   * Elimina un usuario por su nombre de usuario.
-   *
-   * @param username Nombre de usuario del usuario a eliminar
-   * @return 0 si la eliminación fue exitosa, 1 si el usuario no existe
-   */
-  public int deleteByUsername(String username) {
-    Optional<User> found = userRepo.findByUsername(username);
-    if (found.isPresent()) {
-      userRepo.delete(found.get());
-      return 0;
-    } else {
-      return 1;
-    }
-  }
+		return dtoList;
+	}
 
-  /**
-   * Actualiza un usuario existente por su ID. Codifica la contraseña antes de guardarla.
-   *
-   * @param id ID del usuario a actualizar
-   * @param newData DTO con los nuevos datos del usuario
-   * @return 0 si la actualización fue exitosa, 1 si el nuevo nombre de usuario ya está en uso, 2 si
-   *     el usuario a actualizar no existe, 3 en otros casos de error
-   */
-  @Override
-  public int updateById(Long id, UserDTO newData) {
-    Optional<User> found = userRepo.findById(id);
-    Optional<User> newFound = userRepo.findByUsername(newData.getUsername());
+	@Override
+	public int deleteById(Long id) {
+		Optional<User> found = userRepo.findById(id);
+		if (found.isPresent()) {
+			userRepo.delete(found.get());
+			return 0;
+		} else {
+			return 1;
+		}
+	}
 
-    if (found.isPresent() && !newFound.isPresent()) {
-      User temp = found.get();
-      temp.setUsername(newData.getUsername());
-      // Encriptar la contraseña antes de guardar
-      temp.setPassword(passwordEncoder.encode(newData.getPassword()));
-      //Actualiza edad y fecha nacimiento del usuario segun el Id
-      temp.setUserAge(newData.getUserAge());
-      temp.setDateOfBirth(newData.getDateOfBirth());
-      // Actualizar rol si se proporciona
-      if (newData.getRole() != null) {
-        temp.setRole(newData.getRole());
-      }
-      userRepo.save(temp);
-      return 0;
-    }
-    if (found.isPresent() && newFound.isPresent()) {
-      return 1;
-    }
-    if (!found.isPresent()) {
-      return 2;
-    } else {
-      return 3;
-    }
-  }
+	public int deleteByUsername(String username) {
+		Optional<User> found = userRepo.findByUsername(username);
+		if (found.isPresent()) {
+			userRepo.delete(found.get());
+			return 0;
+		} else {
+			return 1;
+		}
+	}
 
-  /**
-   * Obtiene un usuario por su ID.
-   *
-   * @param id ID del usuario a obtener
-   * @return DTO del usuario si existe, null en caso contrario
-   */
-  public UserDTO getById(Long id) {
-    Optional<User> found = userRepo.findById(id);
-    if (found.isPresent()) {
-      return modelMapper.map(found.get(), UserDTO.class);
-    } else {
-      return null;
-    }
-  }
+	@Override
+	public int updateById(Long id, UserDTO newData) {
+		Optional<User> found = userRepo.findById(id);
+		Optional<User> newFound = userRepo.findByUsername(newData.getUsername());
 
-  /**
-   * Verifica si un nombre de usuario ya está en uso.
-   *
-   * @param newUser Usuario con el nombre de usuario a verificar
-   * @return true si el nombre de usuario ya está en uso, false en caso contrario
-   */
-  public boolean findUsernameAlreadyTaken(User newUser) {
-    Optional<User> found = userRepo.findByUsername(newUser.getUsername());
-    if (found.isPresent()) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+		if (found.isPresent() && !newFound.isPresent()) {
+			User temp = found.get();
+			temp.setUsername(newData.getUsername());
+			// Hash the password before saving
+			temp.setPassword(passwordEncoder.encode(newData.getPassword()));
+			userRepo.save(temp);
+			return 0;
+		}
+		if (found.isPresent() && newFound.isPresent()) {
+			return 1;
+		}
+		if (!found.isPresent()) {
+			return 2;
+		} else {
+			return 3;
+		}
+	}
 
-  /**
-   * Verifica si un nombre de usuario ya está en uso.
-   *
-   * @param username Nombre de usuario a verificar
-   * @return true si el nombre de usuario ya está en uso, false en caso contrario
-   */
-  public boolean findUsernameAlreadyTaken(String username) {
-    Optional<User> found = userRepo.findByUsername(username);
-    return found.isPresent();
-  }
+	public UserDTO getById(Long id) {
+		Optional<User> found = userRepo.findById(id);
+		if (found.isPresent()) {
+			return modelMapper.map(found.get(), UserDTO.class);
+		} else {
+			return null;
+		}
+	}
 
-  /**
-   * Valida las credenciales de un usuario.
-   *
-   * @param username Nombre de usuario
-   * @param password Contraseña sin encriptar
-   * @return 0 si las credenciales son válidas, 1 si son inválidas
-   */
-  public int validateCredentials(String username, String password) {
-    // Buscar usuario por nombre de usuario
-    Optional<User> userOpt = userRepo.findByUsername(username);
+	public boolean findUsernameAlreadyTaken(User newUser) {
+		Optional<User> found = userRepo.findByUsername(newUser.getUsername());
+		if (found.isPresent()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
-    // Verificar si el usuario existe y la contraseña coincide
-    if (userOpt.isPresent()) {
-      User user = userOpt.get();
-      if (passwordEncoder.matches(password, user.getPassword())) {
-        return 0; // Éxito
-      }
-    }
+	public boolean findUsernameAlreadyTaken(String username) {
+		Optional<User> found = userRepo.findByUsername(username);
+		return found.isPresent();
+	}
 
-    return 1; // Credenciales inválidas
-  }
+	public int validateCredentials(String username, String password) {
+		// Find user by username
+		Optional<User> userOpt = userRepo.findByUsername(username);
 
-  /**
-   * Obtiene usuarios por fecha de nacimiento.
-   *
-   * @param localDate Fecha de nacimiento a filtrar
-   * @return Lista de usuarios con esa fecha de nacimiento
-   */
-  @Override
-  public List<UserDTO> getByLocalDate(LocalDate localDate) {
-    // Implementación pendiente: filtrar usuarios por fecha de nacimiento
-    return new ArrayList<>();
-  }
+		// Check if user exists and password matches
+		if (userOpt.isPresent()) {
+			User user = userOpt.get();
+			if (passwordEncoder.matches(password, user.getPassword())) {
+				return 0; // Success
+			}
+		}
+
+		return 1; // Invalid credentials
+	}
+
 }

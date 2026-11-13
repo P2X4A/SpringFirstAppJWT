@@ -32,5 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
-### Config con credenciales (no subir) ###
+### Configuración local con credenciales (usar application.properties.example como plantilla) ###
 application*.properties
+
+### Archivos de sistema ###
+._*
+.DS_Store
+Thumbs.db
+*.zip
