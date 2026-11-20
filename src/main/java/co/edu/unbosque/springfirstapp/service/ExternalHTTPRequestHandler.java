@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import co.edu.unbosque.springfirstapp.dto.FactDTO;
+import co.edu.unbosque.springfirstapp.dto.JokeAPIDTO;
 
 /**
  * Clase de ejemplo para hacer peticiones HTTP a una API externa (es decir, a un servidor que no
@@ -53,17 +54,20 @@ public class ExternalHTTPRequestHandler {
 
 	/**
 	 * Punto de entrada para probar la clase por separado (no lo usa Spring).
-	 * Hace un GET a una API pública de datos curiosos y muestra el resultado.
+	 * Hace un GET a JokeAPI (una API pública de chistes) y muestra el chiste.
 	 */
 	public static void main(String[] args) throws IOException, InterruptedException {
 		System.out.println("//// GET ////");
-		// URL de la API pública que devuelve un dato curioso al azar.
-		String fact = "https://uselessfacts.jsph.pl/api/v2/facts/random";
+		// URL de JokeAPI: devuelve un chiste al azar en español.
+		String fact = "https://v2.jokeapi.dev/joke/Any?lang=es";
 		// System.out.println(doGetAndParse(fact));
 
-		// Hace el GET y convierte el JSON de la respuesta en un objeto FactDTO.
-		FactDTO resp = doGetAndConvertToDto(fact);
-		System.out.println(resp.toString());
+		// Hace el GET y convierte el JSON de la respuesta en objetos JokeAPIDTO (una lista con un chiste).
+		List<JokeAPIDTO> resp = doGetAndConvertToDtoListJokeApi(fact);
+		// Se imprime cada chiste: usa el toString de JokeAPIDTO.
+		for (JokeAPIDTO chiste : resp) {
+			System.out.println(chiste);
+		}
 
 		// Ejemplos de POST, PUT y DELETE desactivados (comentados): quita los // para probarlos.
 //		System.out.println("//// POST ////");
@@ -341,6 +345,39 @@ public class ExternalHTTPRequestHandler {
 		JsonElement jsonElement = JsonParser.parseString(uglyJson);
 		String prettyJsonString = gson.toJson(jsonElement);
 		return prettyJsonString;
+	}
+	
+	public static List<JokeAPIDTO> doGetAndConvertToDtoListJokeApi(String url) {
+		// 1. Armar la petición: método GET + dirección (URI) + encabezados.
+		//    El encabezado Content-Type indica el formato del cuerpo que se envía. En un GET no hay
+		//    cuerpo, así que aquí no hace falta (lo habitual sería "Accept: application/json").
+		HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(url))
+				.header("Content-Type", "application/json").build();
+
+		// 2. Enviar la petición. "response" empieza en null y se llena cuando el envío funciona.
+		HttpResponse<String> response = null;
+		// try/catch: enviar puede fallar, así que se atrapan los errores posibles:
+		//  - IOException: problema de conexión (sin internet, servidor caído, etc.).
+		//  - InterruptedException: el hilo fue interrumpido mientras esperaba la respuesta.
+		// Aquí solo se imprime el error. Ojo: si falla, "response" se queda en null y la línea que
+		// lo usa más abajo lanzaría un NullPointerException.
+		try {
+			//SE GUARDA EL REQUEST Y EL BodyHandlers para manejarlo como cadena de caracteres
+			response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		// 3. Leer el cuerpo de la respuesta: es un texto en formato JSON.
+		String json = response.body();
+		//SI LA CLASE DTO es igual al JSON, funciona como un DataMapper para convertir el JSON
+		//A objeto
+		//Si es una lista, el JSON pasa de Lista a una lista de Objetos
+		List<JokeAPIDTO> list = Arrays.asList(new GsonBuilder().create().fromJson(json, JokeAPIDTO.class));
+
+		return list;
+
 	}
 
 }
