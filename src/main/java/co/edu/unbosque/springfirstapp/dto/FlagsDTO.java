@@ -1,9 +1,9 @@
 package co.edu.unbosque.springfirstapp.dto;
 
-/**
- * Objeto "flags" que viene anidado dentro del chiste de JokeAPI. Indica si el chiste pertenece a
- * categorías sensibles. Cada campo se llama igual que su clave en el JSON.
- */
+
+ //Objeto "flags" que viene anidado dentro del chiste de JokeAPI. Indica si el chiste pertenece a
+ //categorías sensibles. Cada campo se llama igual que su clave en el JSON.
+ 
 public class FlagsDTO {
 	private Boolean nsfw;
 	private Boolean religious;
