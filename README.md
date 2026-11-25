@@ -2,6 +2,8 @@
 
 API REST de usuarios con autenticación **JWT** y permisos por **rol**, hecha con Spring Boot 3 y Java 21.
 
+Tiene un front de ejemplo en Angular que la consume: [springfirstapp-jwt-front](https://github.com/P2X4A/springfirstapp-jwt-front).
+
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![MySQL](https://img.shields.io/badge/MySQL-database-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
